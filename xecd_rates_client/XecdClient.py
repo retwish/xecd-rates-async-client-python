@@ -1,7 +1,17 @@
-import requests
+from aiohttp import ClientSession, BasicAuth
 
 
-class XecdClient(object):
+class XecdApiUri(object):
+    CURRENCIES_REQUEST_URI = 'currencies.json'
+    ACCOUNT_INFO_REQUEST_URI = 'account_info.json'
+    CONVERT_FROM_REQUEST_URI = 'convert_from.json'
+    CONVERT_TO_REQUEST_URI = 'convert_to.json'
+    HISTORIC_RATE_REQUEST_URI = 'historic_rate.json'
+    HISTORIC_RATE_PERIOD_REQUEST_URI = 'historic_rate/period.json'
+    MONTHLY_AVERAGE_REQUEST_URI = 'monthly_average.json'
+
+
+class XecdClient(XecdApiUri):
     """XECD REST API Client"""
 
     def __init__(self, account_id, api_key, options={}):
@@ -15,36 +25,29 @@ class XecdClient(object):
         }
         self.options.update(options)
 
-        self.accountInfoRequestUri = 'account_info.json'
-        self.currenciesRequestUri = 'currencies.json'
-        self.convertFromRequestUri = 'convert_from.json'
-        self.convertToRequestUri = 'convert_to.json'
-        self.historicRateRequestUri = 'historic_rate.json'
-        self.historicRatePeriodRequestUri = 'historic_rate/period.json'
-        self.monthlyAverageRequestUri = 'monthly_average.json'
-
-    def __send(self, ops):
+    async def _send(self, ops):
         self.options.update(ops)
         # cached for debugging purposes
         url = self.options["url"]
         username = self.options['auth']['user']
         password = self.options['auth']['password']
         qs = self.options['qs']
-        temp = requests.get(url, auth=(username, password), params=qs)
-        data = temp.json()
-        return data
+        async with ClientSession(auth=BasicAuth(username, password)) as session:
+            async with session.get(url, params=qs) as resp:
+                data = await resp.json()
+                return data
 
-    def account_info(
+    async def account_info(
         self,
         options={}
     ):
         ops = {
-            'url': self.options['baseUrl'] + self.accountInfoRequestUri
+            'url': self.options['baseUrl'] + self.ACCOUNT_INFO_REQUEST_URI
         }
         ops.update(options)
-        return self.__send(ops)
+        return await self._send(ops)
 
-    def currencies(
+    async def currencies(
         self,
         obsolete=False,
         language="en",
@@ -52,7 +55,7 @@ class XecdClient(object):
         options={}
     ):
         ops = {
-            'url': self.options['baseUrl'] + self.currenciesRequestUri,
+            'url': self.options['baseUrl'] + self.CURRENCIES_REQUEST_URI,
             'qs': {
                 'obsolete': True if obsolete else False,
                 'language': language,
@@ -60,9 +63,9 @@ class XecdClient(object):
             }
         }
         ops.update(options)
-        return self.__send(ops)
+        return await self._send(ops)
 
-    def convert_from(
+    async def convert_from(
         self,
         from_currency="USD",
         to_currency="*",
@@ -72,7 +75,7 @@ class XecdClient(object):
         options={}
     ):
         ops = {
-            'url': self.options['baseUrl'] + self.convertFromRequestUri,
+            'url': self.options['baseUrl'] + self.CONVERT_FROM_REQUEST_URI,
             'qs': {
                 'from': from_currency,
                 'to': to_currency,
@@ -82,9 +85,9 @@ class XecdClient(object):
             }
         }
         ops.update(options)
-        return self.__send(ops)
+        return await self._send(ops)
 
-    def convert_to(
+    async def convert_to(
         self,
         to_currency="USD",
         from_currency="*",
@@ -94,7 +97,7 @@ class XecdClient(object):
         options={}
     ):
         ops = {
-            'url': self.options['baseUrl'] + self.convertToRequestUri,
+            'url': self.options['baseUrl'] + self.CONVERT_TO_REQUEST_URI,
             'qs': {
                 'to': to_currency,
                 'from': from_currency,
@@ -104,9 +107,9 @@ class XecdClient(object):
             }
         }
         ops.update(options)
-        return self.__send(ops)
+        return await self._send(ops)
 
-    def historic_rate(
+    async def historic_rate(
         self,
         date,
         time,
@@ -118,7 +121,7 @@ class XecdClient(object):
         options={}
     ):
         ops = {
-            'url': self.options['baseUrl'] + self.historicRateRequestUri,
+            'url': self.options['baseUrl'] + self.HISTORIC_RATE_REQUEST_URI,
             'qs': {
                 'from': from_currency,
                 'to': to_currency,
@@ -130,9 +133,9 @@ class XecdClient(object):
             }
         }
         ops.update(options)
-        return self.__send(ops)
+        return await self._send(ops)
 
-    def historic_rate_period(
+    async def historic_rate_period(
         self,
         amount=1,
         from_currency="USD",
@@ -147,7 +150,7 @@ class XecdClient(object):
         options={}
     ):
         ops = {
-            'url': self.options['baseUrl'] + self.historicRatePeriodRequestUri,
+            'url': self.options['baseUrl'] + self.HISTORIC_RATE_PERIOD_REQUEST_URI,
             'qs': {
                 'from': from_currency,
                 'to': to_currency,
@@ -163,9 +166,9 @@ class XecdClient(object):
             }
         }
         ops.update(options)
-        return self.__send(ops)
+        return await self._send(ops)
 
-    def monthly_average(
+    async def monthly_average(
         self,
         amount=1,
         from_currency="USD",
@@ -177,7 +180,7 @@ class XecdClient(object):
         options={}
     ):
         ops = {
-            'url': self.options['baseUrl'] + self.monthlyAverageRequestUri,
+            'url': self.options['baseUrl'] + self.MONTHLY_AVERAGE_REQUEST_URI,
             'qs': {
                 'from': from_currency,
                 'to': to_currency,
@@ -189,4 +192,4 @@ class XecdClient(object):
             }
         }
         ops.update(options)
-        return self.__send(ops)
+        return await self._send(ops)
